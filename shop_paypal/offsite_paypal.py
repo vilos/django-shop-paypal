@@ -13,9 +13,11 @@ from paypal.standard.forms import PayPalPaymentsForm
 from paypal.standard.ipn.signals import payment_was_successful as success_signal
 from shop import order_signals
 
+from utils import generate_key
+IPN_RETURN_KEY = generate_key(96, 1024)
+
 import logging
 logger = logging.getLogger('paypal')
-
 
 class OffsitePaypalBackend(object):
     '''
@@ -46,7 +48,7 @@ class OffsitePaypalBackend(object):
         urlpatterns = patterns('',
             url(r'^$', self.view_that_asks_for_money, name='paypal'),
             url(r'^success/$', self.paypal_successful_return_view, name='paypal_success'),
-            url(r'^somethinghardtoguess/instantpaymentnotification/$', include('paypal.standard.ipn.urls')),
+            url(r'^ipn/{0}/$'.format(IPN_RETURN_KEY), include('paypal.standard.ipn.urls')),
         )
         return urlpatterns
 
