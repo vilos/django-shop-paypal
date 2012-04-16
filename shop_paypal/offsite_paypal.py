@@ -13,6 +13,9 @@ from paypal.standard.forms import PayPalPaymentsForm
 from paypal.standard.ipn.signals import payment_was_successful as success_signal
 from shop import order_signals
 
+import logging
+logger = logging.getLogger('paypal')
+
 
 class OffsitePaypalBackend(object):
     '''
@@ -112,5 +115,12 @@ class OffsitePaypalBackend(object):
         order_id = ipn_obj.invoice  # That's the "invoice ID we passed to paypal
         amount = Decimal(ipn_obj.mc_gross)
         transaction_id = ipn_obj.txn_id
+
+        logger.info("Successful payment : transaction_id: {transaction_id}, Sender: {sender}, OrderID {order_id}, Total: {total}".format(
+          transaction_id=transaction_id,
+          sender = sender,
+          order_id = order_id,
+          total = amount))
+
         # The actual request to the shop system
         self.shop.confirm_payment(self.shop.get_order_for_id(order_id), amount, transaction_id, self.backend_name)
