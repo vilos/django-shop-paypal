@@ -91,10 +91,10 @@ class OffsitePaypalBackend(object):
         a reference to the shop interface
         '''
         form = self.get_form(request)
-        context = {"form": form}
-        rc = RequestContext(request, context)
         order = self.shop.get_order(request)
         order_signals.confirmed.send(sender=self, order=order)
+        context = {"form": form, 'order' : order}
+        rc = RequestContext(request, context)
         return render_to_response("shop_paypal/payment.html", rc)
 
     @csrf_exempt
