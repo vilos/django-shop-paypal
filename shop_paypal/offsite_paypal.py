@@ -11,6 +11,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from paypal.standard.forms import PayPalPaymentsForm
 from paypal.standard.ipn.signals import payment_was_successful as success_signal
+from shop import order_signals
 
 
 class OffsitePaypalBackend(object):
@@ -87,10 +88,14 @@ class OffsitePaypalBackend(object):
         form = self.get_form(request)
         context = {"form": form}
         rc = RequestContext(request, context)
+        order = self.shop.get_order(request)
+        order_signals.confirmed.send(sender=self, order=order)
         return render_to_response("shop_paypal/payment.html", rc)
 
     @csrf_exempt
     def paypal_successful_return_view(self, request):
+        order = self.shop.get_order(request)
+        order_signals.completed.send(sender=self, order=order)
         rc = RequestContext(request, {})
         return render_to_response("shop_paypal/success.html", rc)
 
