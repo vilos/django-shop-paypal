@@ -12,6 +12,7 @@ from django.views.decorators.csrf import csrf_exempt
 from paypal.standard.forms import PayPalPaymentsForm
 from paypal.standard.ipn.signals import payment_was_successful as success_signal
 from shop import order_signals
+from shop.models import Order
 
 from utils import generate_key
 IPN_RETURN_KEY = generate_key(96, 1024)
@@ -65,8 +66,8 @@ class OffsitePaypalBackend(object):
         "business": settings.PAYPAL_RECEIVER_EMAIL,
         "currency_code": settings.PAYPAL_CURRENCY_CODE,
         "amount": self.shop.get_order_total(order),
-        "item_name": self.shop.get_order_short_name(order),
-        "invoice": self.shop.get_order_unique_id(order),
+        "item_name": u"Order: %s" % order.guid,
+        "invoice": order.guid,
         "notify_url": '%s://%s%s' % (url_scheme,
             url_domain, reverse('paypal-ipn')),  # defined by django-paypal
         "return_url": '%s://%s%s' % (url_scheme,
@@ -114,15 +115,16 @@ class OffsitePaypalBackend(object):
         asks the shop system to record a successful payment.
         '''
         ipn_obj = sender
-        order_id = ipn_obj.invoice  # That's the "invoice ID we passed to paypal
+        order_guid = ipn_obj.invoice  # That's the "invoice ID we passed to paypal
         amount = Decimal(ipn_obj.mc_gross)
         transaction_id = ipn_obj.txn_id
 
         logger.info("Successful payment : transaction_id: {transaction_id}, Sender: {sender}, OrderID {order_id}, Total: {total}".format(
           transaction_id=transaction_id,
           sender = sender,
-          order_id = order_id,
+          order_id = order_guid,
           total = amount))
 
         # The actual request to the shop system
-        self.shop.confirm_payment(self.shop.get_order_for_id(order_id), amount, transaction_id, self.backend_name)
+        order = Order.objects.get(guid=order_guid)
+        self.shop.confirm_payment(order, amount, transaction_id, self.backend_name)
