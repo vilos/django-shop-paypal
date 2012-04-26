@@ -8,6 +8,7 @@ from django.core.urlresolvers import reverse
 from django.shortcuts import render_to_response
 from django.template import RequestContext
 from django.views.decorators.csrf import csrf_exempt
+from django.http import HttpResponseRedirect
 
 from paypal.standard.forms import PayPalPaymentsForm
 from paypal.standard.ipn.signals import payment_was_successful as success_signal
@@ -100,10 +101,7 @@ class OffsitePaypalBackend(object):
 
     @csrf_exempt
     def paypal_successful_return_view(self, request):
-        order = self.shop.get_order(request)
-        order_signals.completed.send(sender=self, order=order)
-        rc = RequestContext(request, {})
-        return render_to_response("shop_paypal/success.html", rc)
+        return HttpResponseRedirect(self.shop.get_finished_url())
 
     #===========================================================================
     # Signal listeners
@@ -127,4 +125,5 @@ class OffsitePaypalBackend(object):
 
         # The actual request to the shop system
         order = Order.objects.get(guid=order_guid)
+        order_signals.completed.send(sender=self, order=order)
         self.shop.confirm_payment(order, amount, transaction_id, self.backend_name)
