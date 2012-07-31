@@ -113,17 +113,17 @@ class OffsitePaypalBackend(object):
         asks the shop system to record a successful payment.
         '''
         ipn_obj = sender
-        order_guid = ipn_obj.invoice  # That's the "invoice ID we passed to paypal
+        order_id = ipn_obj.invoice  # That's the "invoice ID we passed to paypal
         amount = Decimal(ipn_obj.mc_gross)
         transaction_id = ipn_obj.txn_id
 
         logger.info("Successful payment : transaction_id: {transaction_id}, Sender: {sender}, OrderID {order_id}, Total: {total}".format(
           transaction_id=transaction_id,
           sender = sender,
-          order_id = order_guid,
+          order_id = order_id,
           total = amount))
 
         # The actual request to the shop system
-        order = Order.objects.get(guid=order_guid)
+        order = Order.objects.get_for_number(order_id)
         order_signals.completed.send(sender=self, order=order)
         self.shop.confirm_payment(order, amount, transaction_id, self.backend_name)
