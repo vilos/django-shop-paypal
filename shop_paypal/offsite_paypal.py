@@ -94,7 +94,7 @@ class OffsitePaypalBackend(object):
         '''
         form = self.get_form(request)
         order = self.shop.get_order(request)
-        order_signals.confirmed.send(sender=self, order=order)
+        #order_signals.confirmed.send(sender=self, order=order)
         context = {"form": form, 'order' : order}
         rc = RequestContext(request, context)
         return render_to_response("shop_paypal/payment.html", rc)
